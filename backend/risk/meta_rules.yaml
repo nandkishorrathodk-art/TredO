@@ -1,0 +1,31 @@
+# ═══════════════════════════════════════════════════════════
+# TREDO — L0 META-RULES — IMMUTABLE SAFETY LAYER
+# ═══════════════════════════════════════════════════════════
+# These rules are HARDCODED. No AI agent, no code change,
+# no configuration can override them.
+# They are the absolute safety foundation.
+# ═══════════════════════════════════════════════════════════
+
+capital:
+  max_single_trade_risk_pct: 1.5       # Max 1.5% of portfolio per trade
+  max_position_size_pct: 10.0          # Max 10% of portfolio in one position
+  max_portfolio_exposure_pct: 50.0     # Max 50% of portfolio in active positions
+  max_correlation_exposure_pct: 30.0   # Max 30% in correlated assets
+  max_leverage: 3.0                    # No leverage above 3x
+
+drawdown:
+  max_daily_drawdown_pct: 4.0          # Pause trading after 4% daily loss
+  max_weekly_drawdown_pct: 8.0         # Pause trading after 8% weekly loss
+  cool_down_minutes: 30                # 30-min pause after significant loss
+  significant_loss_pct: 2.0            # Loss >= 2% triggers cool-down
+
+trading:
+  max_daily_trades: 50                 # Max 50 trades per day
+  paper_trading_mandatory_days: 60     # Paper trading for first 60 days
+  min_order_interval_seconds: 5        # At least 5 seconds between orders
+
+governance:
+  require_reasoning: true              # Every trade needs a reason
+  audit_trail_immutable: true          # Audit logs can never be deleted
+  human_kill_switch: true              # Human can stop everything instantly
+  self_code_cannot_modify_risk: true   # AI cannot change risk module
