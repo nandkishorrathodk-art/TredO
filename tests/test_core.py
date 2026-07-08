@@ -41,12 +41,14 @@ class TestMessages:
 
     def test_signal_generated(self):
         sig = SignalGenerated(
-            symbol="BTC/USDT", side="buy",
-            confidence=87, reasons=["RSI oversold"],
+            symbol="BTC/USDT", direction="BUY",
+            confidence=0.8, reason="RSI oversold",
             source="scanner",
         )
         assert sig.symbol == "BTC/USDT"
-        assert sig.confidence == 87
+        assert sig.direction == "BUY"
+        assert sig.confidence == 0.8
+        assert sig.reason == "RSI oversold"
         assert sig.type_name == "SignalGenerated"
 
     def test_risk_check_request(self):
@@ -109,7 +111,7 @@ class TestEventBus:
             received.append(msg)
 
         bus.subscribe(SignalGenerated, handler)
-        await bus.publish(SignalGenerated(symbol="BTC/USDT", side="buy"))
+        await bus.publish(SignalGenerated(symbol="BTC/USDT", direction="BUY"))
 
         assert len(received) == 1
         assert received[0].symbol == "BTC/USDT"
@@ -449,7 +451,7 @@ class TestIntegrationFlow:
             flow_log.append(f"risk_check:{msg.symbol}")
             # Simulate approval
             await bus.publish(RiskApproved(
-                symbol=msg.symbol, side=msg.side,
+                symbol=msg.symbol, side=msg.direction,
                 approved_amount=0.01, risk_pct=0.71,
                 source="risk_engine",
             ))
@@ -483,8 +485,8 @@ class TestIntegrationFlow:
 
         # Trigger the flow with a signal
         await bus.publish(SignalGenerated(
-            symbol="BTC/USDT", side="buy",
-            confidence=87, reasons=["RSI oversold"],
+            symbol="BTC/USDT", direction="BUY",
+            confidence=0.8, reason="RSI oversold",
             source="scanner",
         ))
 

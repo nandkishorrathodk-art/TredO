@@ -8,12 +8,12 @@ Usage:
 
     # Subscribe to a message type
     async def on_signal(msg: SignalGenerated):
-        print(f"Got signal: {msg.symbol} {msg.side}")
+        print(f"Got signal: {msg.symbol} {msg.direction}")
 
     bus.subscribe(SignalGenerated, on_signal)
 
     # Publish a message — all subscribers get notified
-    await bus.publish(SignalGenerated(symbol="BTC/USDT", side="buy"))
+    await bus.publish(SignalGenerated(symbol="BTC/USDT", direction="BUY"))
 
     # Unsubscribe
     bus.unsubscribe(SignalGenerated, on_signal)

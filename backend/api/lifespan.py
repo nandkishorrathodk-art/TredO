@@ -31,6 +31,7 @@ from backend.core.event_bus import EventBus
 from backend.core.messages import BaseMessage, SystemEvent
 from backend.core.registry import Registry
 from backend.core.scheduler import Scheduler
+from backend.market.scanner import MarketScanner
 from backend.memory.journal import Journal
 from backend.risk.engine import RiskEngine
 
@@ -53,13 +54,26 @@ async def _wire_ws_events(bus: EventBus, ws_manager: WebSocketManager) -> None:
         SignalGenerated,
         TradeExecuted,
     )
+    from backend.intelligence.models import FeaturesUpdated
 
     event_types = [
         SystemEvent, SignalGenerated, RiskApproved, RiskRejected,
         TradeExecuted, MemoryEvent, KillSwitchActivated,
         AgentStarted, AgentStopped, AgentFailed, AgentMessage,
+        FeaturesUpdated,
     ]
-    for etype in event_types:
+    
+    from backend.market.events import (
+        ConnectionEvent, TickerEvent, CandleEvent, TradeEvent,
+        OrderBookEvent, FundingEvent, OpenInterestEvent
+    )
+    
+    market_events = [
+        ConnectionEvent, TickerEvent, CandleEvent, TradeEvent,
+        OrderBookEvent, FundingEvent, OpenInterestEvent
+    ]
+    
+    for etype in event_types + market_events:
         bus.subscribe(etype, ws_manager.broadcast_event)
 
 
@@ -108,12 +122,38 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await _wire_ws_events(bus, ws_manager)
     logger.info("WebSocket manager wired to Event Bus")
 
+    # ── 4.5 Create Market Scanner ────────────────────────
+    scanner = MarketScanner(bus)
+    registry.register("market_scanner", scanner)
+    await scanner.start()
+    logger.info("Market Scanner started")
+
+    # ── 4.6 Create Feature Store & Pipeline ──────────────
+    from backend.intelligence.feature_store import FeatureStore
+    from backend.intelligence.pipeline import IntelligencePipeline
+    
+    feature_store = FeatureStore()
+    pipeline = IntelligencePipeline(bus, feature_store)
+    
+    # Default V1 features
+    pipeline.add_feature("BTC/USDT", "EMA", 20)
+    pipeline.add_feature("BTC/USDT", "RSI", 14)
+    pipeline.add_feature("BTC/USDT", "BB", 20)
+    
+    registry.register("feature_store", feature_store)
+    registry.register("intelligence_pipeline", pipeline)
+    await pipeline.start()
+    logger.info("Intelligence Pipeline started")
+
     # ── 5. Store references in app state ─────────────────
     app.state.registry = registry
     app.state.bus = bus
     app.state.scheduler = scheduler
     app.state.agent_manager = agent_manager
     app.state.ws_manager = ws_manager
+    app.state.scanner = scanner
+    app.state.feature_store = feature_store
+    app.state.pipeline = pipeline
     app.state.start_time = start_time
 
     # ── 6. Publish startup event ─────────────────────────
@@ -146,6 +186,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Stop all agents
     await agent_manager.stop_all(reason="application_shutdown")
     logger.info("Agents stopped")
+
+    # Stop market scanner and pipeline
+    await pipeline.stop()
+    logger.info("Intelligence Pipeline stopped")
+    
+    await scanner.stop()
+    logger.info("Market Scanner stopped")
 
     # Close WebSockets
     await ws_manager.close_all()

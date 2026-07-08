@@ -36,10 +36,14 @@ class BaseMessage:
 @dataclass
 class SignalGenerated(BaseMessage):
     """A trading signal has been generated."""
+    strategy: str = ""
     symbol: str = ""
-    side: str = ""           # "buy" or "sell"
-    confidence: int = 0      # 0-100
-    reasons: list[str] = field(default_factory=list)
+    exchange: str = "binance"
+    market_type: str = "linear"
+    timeframe: str = "1m"
+    direction: str = ""      # "BUY", "SELL", or "NONE"
+    confidence: float = 0.0  # 0.0 to 1.0
+    reason: str = ""
 
 
 # ── Risk Messages ────────────────────────────────────────
