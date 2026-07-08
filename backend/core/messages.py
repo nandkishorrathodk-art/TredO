@@ -43,7 +43,7 @@ class SignalGenerated(BaseMessage):
     timeframe: str = "1m"
     direction: str = ""      # "BUY", "SELL", or "NONE"
     confidence: float = 0.0  # 0.0 to 1.0
-    reason: str = ""
+    reason: str | list[str] = ""
 
 
 # ── Risk Messages ────────────────────────────────────────

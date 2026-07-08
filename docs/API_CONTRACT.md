@@ -1,148 +1,26 @@
-# TREDO — API Contract (V1)
+# TREDO — API Contract
 
-> **FROZEN.** Do not change these contracts without updating this document first.
-> Frontend (Electron) depends on these exact shapes.
+This document lists the WebSocket and REST API endpoints used to control the Python Backend from the Electron Frontend.
 
----
+## Replay Controller API (V2.4+)
 
-## REST Endpoints
+**Prefix**: `/api/v1/replay`
 
-### `GET /health`
+| Endpoint | Method | Description | Payload Example |
+|---|---|---|---|
+| `/play` | POST | Starts or resumes the replay clock. | `{}` |
+| `/pause` | POST | Halts the replay clock immediately. | `{}` |
+| `/stop` | POST | Halts and resets the clock to the beginning. | `{}` |
+| `/step` | POST | Emits exactly one candle then pauses. | `{}` |
+| `/speed` | POST | Sets the replay multiplier. | `{"speed_multiplier": 10.0}` |
+| `/seek` | POST | Jumps to a specific timestamp in the source. | `{"timestamp": 1718000000}` |
 
-**Response:**
-```json
-{
-  "status": "ok",
-  "uptime_s": 123.45,
-  "services": 7,
-  "agents": 0
-}
-```
+## Strategy Engine API
 
-### `GET /status`
+**Prefix**: `/api/v1/strategy`
 
-**Response:**
-```json
-{
-  "status": "running",
-  "services": [
-    {"name": "event_bus", "type": "EventBus", "status": "registered"},
-    {"name": "memory", "type": "Journal", "status": "registered"},
-    {"name": "risk", "type": "RiskEngine", "status": "registered"},
-    {"name": "ai_gateway", "type": "AIGateway", "status": "registered"}
-  ],
-  "event_bus": {
-    "total_subscriptions": 11,
-    "message_types": 11,
-    "history_size": 1
-  },
-  "scheduler": {}
-}
-```
-
-### `GET /services`
-
-**Response:**
-```json
-{
-  "count": 7,
-  "services": [
-    {"name": "event_bus", "type": "EventBus", "status": "registered"},
-    {"name": "memory", "type": "Journal", "status": "registered"}
-  ]
-}
-```
-
-### `POST /event`
-
-**Request:**
-```json
-{
-  "event_type": "system",
-  "message": "User action description",
-  "severity": "info",
-  "details": {}
-}
-```
-
-**Response:**
-```json
-{
-  "published": true,
-  "event_type": "system",
-  "handlers_notified": 3
-}
-```
-
-### `POST /shutdown`
-
-**Request:**
-```json
-{
-  "reason": "user_request"
-}
-```
-
-**Response:**
-```json
-{
-  "status": "shutting_down",
-  "reason": "user_request"
-}
-```
-
----
-
-## WebSocket
-
-### `WS /ws`
-
-**Connect:** `ws://localhost:8000/ws`
-
-**Client → Server:**
-```json
-"ping"
-```
-
-**Server → Client (pong):**
-```json
-{"type": "pong"}
-```
-
-**Server → Client (events):**
-```json
-{
-  "type": "SystemEvent",
-  "source": "lifespan",
-  "timestamp": "2026-07-08T12:00:00+00:00",
-  "event_type": "system",
-  "message": "TREDO started",
-  "severity": "info",
-  "details": {}
-}
-```
-
-### Event Types Streamed via WebSocket
-
-| Type | Description |
-|---|---|
-| `SystemEvent` | System lifecycle events |
-| `SignalGenerated` | Trading signal created |
-| `RiskApproved` | Risk engine approved trade |
-| `RiskRejected` | Risk engine rejected trade |
-| `TradeExecuted` | Trade executed on exchange |
-| `MemoryEvent` | Something logged to memory |
-| `KillSwitchActivated` | Emergency stop |
-| `AgentStarted` | Agent started |
-| `AgentStopped` | Agent stopped |
-| `AgentFailed` | Agent error |
-| `AgentMessage` | Inter-agent message |
-
----
-
-## Rules
-
-1. Electron calls REST endpoints for actions.
-2. Electron receives live updates via WebSocket.
-3. Electron never imports Python logic.
-4. All events flow: `Electron → REST → Event Bus → Handlers → WebSocket → Electron`
+| Endpoint | Method | Description | Payload Example |
+|---|---|---|---|
+| `/enable` | POST | Enables a strategy. | `{"symbol": "BTC/USDT", "strategy": "EMA_CROSS", "weight": 1.0}` |
+| `/disable` | POST | Disables a strategy. | `{"symbol": "BTC/USDT", "strategy": "EMA_CROSS"}` |
+| `/metrics` | GET | Retrieves memory metrics for strategies. | None |

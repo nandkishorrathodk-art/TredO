@@ -24,16 +24,6 @@ class ShutdownRequest(BaseModel):
     reason: str = Field(default="user_request", description="Shutdown reason")
 
 
-class OrderRequest(BaseModel):
-    """POST /order — submit a new trade."""
-    symbol: str = Field(..., description="e.g. BTC/USDT")
-    side: str = Field(..., description="buy or sell")
-    amount: float = Field(..., gt=0, description="Amount of base asset")
-    price: float = Field(..., gt=0, description="Price in quote asset")
-    order_type: str = Field(default="market")
-    reason: str = Field(default="Manual order from UI")
-
-
 # ── Responses ────────────────────────────────────────────
 
 class HealthResponse(BaseModel):
@@ -82,34 +72,3 @@ class ErrorResponse(BaseModel):
     """Generic error response."""
     error: str
     detail: str = ""
-
-
-class OrderResponse(BaseModel):
-    """POST /order response."""
-    order_id: str
-    status: str
-    symbol: str
-    side: str
-    filled_amount: float
-    filled_price: float
-    reasons: list[str] = []
-
-
-class PositionSummary(BaseModel):
-    symbol: str
-    side: str
-    amount: float
-    entry_price: float
-    current_price: float
-    unrealized_pnl: float
-
-
-class PositionsResponse(BaseModel):
-    """GET /positions response."""
-    open_count: int
-    closed_count: int
-    total_realized_pnl: float
-    total_unrealized_pnl: float
-    total_exposure: float
-    positions: list[PositionSummary]
-    portfolio_value: float

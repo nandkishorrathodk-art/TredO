@@ -145,6 +145,21 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await pipeline.start()
     logger.info("Intelligence Pipeline started")
 
+    # ── 4.7 Create Strategy Manager ──────────────────────
+    from backend.strategy.manager import StrategyManager
+    import backend.strategies  # ensure plugins are loaded
+    
+    strategy_manager = StrategyManager(bus, feature_store)
+    
+    # Default V1 strategies enabled
+    strategy_manager.enable_strategy("BTC/USDT", "EMA_CROSS", weight=1.0)
+    strategy_manager.enable_strategy("BTC/USDT", "RSI_REVERSION", weight=0.8)
+    strategy_manager.enable_strategy("BTC/USDT", "BOLLINGER_REVERSION", weight=0.9)
+    
+    registry.register("strategy_manager", strategy_manager)
+    await strategy_manager.start()
+    logger.info("Strategy Manager started")
+
     # ── 5. Store references in app state ─────────────────
     app.state.registry = registry
     app.state.bus = bus
@@ -154,6 +169,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.scanner = scanner
     app.state.feature_store = feature_store
     app.state.pipeline = pipeline
+    app.state.strategy_manager = strategy_manager
     app.state.start_time = start_time
 
     # ── 6. Publish startup event ─────────────────────────
@@ -187,7 +203,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await agent_manager.stop_all(reason="application_shutdown")
     logger.info("Agents stopped")
 
-    # Stop market scanner and pipeline
+    # Stop strategy manager, pipeline, and scanner
+    await strategy_manager.stop()
+    logger.info("Strategy Manager stopped")
+    
     await pipeline.stop()
     logger.info("Intelligence Pipeline stopped")
     
